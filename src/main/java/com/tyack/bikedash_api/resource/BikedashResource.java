@@ -46,12 +46,12 @@ public class BikedashResource extends CommonResource {
                     return bikedashService.findBikeSystem(request.params("system"));
                 }, new JsonTransformer());
 
-        // GET /api/v1/stations/indego/2015-10-28
+        // GET /api/v1/stations/indego/2015-11-25
         // get all stations for system for date
         get(API_CONTEXT + "/stations/:system/:date",
                 (request, response) -> {
                     response.type("application/json");
-                    return bikedashService.findStations(request.params("system"), LocalDate.parse(request.params("date")));
+                    return bikedashService.findStations(request.params("system"), request.params("date"));
                 }, new JsonTransformer());
 
         // GET /api/v1/station/snaps/indego/2015-10-28

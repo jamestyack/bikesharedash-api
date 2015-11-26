@@ -66,7 +66,7 @@ public class BikedashService {
     public List<Document> findSnapsOnDate(String systemId, LocalDate queryDate) throws BikeSystemNotFoundException {
         ZoneId tz = ZoneId.of(findBikeSystem(systemId).getTimezone());
         ZonedDateTime timeFrom = ZonedDateTime.of(LocalDateTime.of(queryDate, LocalTime.of(0,0)), tz);
-        ZonedDateTime timeTo = timeFrom.plusHours(24);
+        ZonedDateTime timeTo = timeFrom.plusSeconds(24*60*60-1);
         MongoCollection<Document> collection = db.getCollection(STATION_SNAPS_SUMMARY_COLLECTION_PREFIX + systemId);
         return collection.find(and(eq(ID_SYSTEM_ID, systemId), gte(ID_TS, Date.from(timeFrom.toInstant())),
                 lte(ID_TS, Date.from(timeTo.toInstant())))).into(new ArrayList<>());
@@ -78,11 +78,11 @@ public class BikedashService {
      * @param date to query (stations move)
      * @return List of station documents
      */
-    public List<Document> findStations(String systemId, LocalDate date) {
-        // TODO implement the date filter
+    public List<Document> findStations(String systemId, String date) {
         // TODO create index on collection?
+        findBikeSystem(systemId);
         MongoCollection<Document> collection = db.getCollection(STATIONS_COLLECTION);
-        final FindIterable<Document> docs = collection.find(eq("_id.systemId", systemId));
+        final FindIterable<Document> docs = collection.find(and(eq("_id.systemId", systemId),eq("_id.date", date)));
         return docs.into(new ArrayList<>());
     }
 }
