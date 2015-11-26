@@ -52,7 +52,7 @@ public class BikedashServiceTest {
     }
 
     @Test
-    public void testFindABikeSystem () {
+    public void testFindABikeSystem() {
         final MongoCollection<Document> bikeSysColl = mockMongoDb.getCollection(BikedashService.BIKE_SYSTEMS_COLLECTION);
         bikeSysColl.insertMany(createTestListOfBikeSystems());
         final BikeSystem result = new BikedashService(mockMongoDb).findBikeSystem("babs");
@@ -60,7 +60,7 @@ public class BikedashServiceTest {
     }
 
     @Test(expected = BikeSystemNotFoundException.class)
-    public void testFindABikeSys_wrongId() {
+    public void testFindABikeSys_wronSystemId() {
         final MongoCollection<Document> bikeSysColl = mockMongoDb.getCollection(BikedashService.BIKE_SYSTEMS_COLLECTION);
         bikeSysColl.insertMany(createTestListOfBikeSystems());
         try {
@@ -78,14 +78,50 @@ public class BikedashServiceTest {
         bikeSysColl.insertMany(createTestListOfBikeSystems());
         final MongoCollection<Document> stationSnapsColl = mockMongoDb.getCollection(BikedashService.STATION_SNAPS_SUMMARY_COLLECTION_PREFIX + INDEGO);
         stationSnapsColl.insertMany(createTestListOfStationSnaps());
-        final ArrayList<Document> whatsInFongo = stationSnapsColl.find().into(new ArrayList<>());
-        System.out.println("What's in Fongo");
-        whatsInFongo.forEach(s -> System.out.println(s));
         BikedashService bs = new BikedashService(mockMongoDb);
         final List<Document> snapsOnDate = bs.findSnapsOnDate(INDEGO, LocalDate.of(2015, 11, 2));
-        System.out.println("Result");
-        snapsOnDate.forEach(s -> System.out.println(s));
+        assertEquals(5, snapsOnDate.size());
+    }
 
+
+    @Test(expected = BikeSystemNotFoundException.class)
+    public void testFindSnapsOnDate_wrongSystemId() throws Exception {
+        BikedashService bs = new BikedashService(mockMongoDb);
+        try {
+            bs.findSnapsOnDate("bad", LocalDate.of(2015, 11, 2));
+            fail("Exception not thrown");
+        } catch (BikeSystemNotFoundException e) {
+            assertEquals("bad bike system not found.", e.getMessage());
+            throw e;
+        }
+    }
+
+    @Test
+    public void testFindStationsForSystemOnDate() throws Exception {
+        final MongoCollection<Document> bikeSysColl = mockMongoDb.getCollection(BikedashService.BIKE_SYSTEMS_COLLECTION);
+        bikeSysColl.insertMany(createTestListOfBikeSystems());
+        final MongoCollection<Document> stationsColl = mockMongoDb.getCollection(BikedashService.STATIONS_COLLECTION);
+        stationsColl.insertMany(createTestListOfStations());
+        BikedashService bs = new BikedashService(mockMongoDb);
+        final List<Document> snapsOnDate = bs.findStations(INDEGO, "2015-11-02");
+        assertEquals("[Document{{_id=Document{{stationId=1, systemId=indego, date=2015-11-02}}}}]", snapsOnDate.toString());
+        assertEquals(1, snapsOnDate.size());
+    }
+
+    @Test(expected = BikeSystemNotFoundException.class)
+    public void testFindStationsForSystemOnDate_wrongSystemId() throws Exception {
+        BikedashService bs = new BikedashService(mockMongoDb);
+        try {
+            bs.findStations("bad", "2015-11-02");
+            fail("Exception not thrown");
+        } catch (BikeSystemNotFoundException e) {
+            assertEquals("bad bike system not found.", e.getMessage());
+            throw e;
+        }
+    }
+
+    private Date getDateTime(LocalDate localDate, LocalTime localTime, ZoneId zoneId) {
+        return Date.from((ZonedDateTime.of(localDate, localTime, zoneId)).toInstant());
     }
 
     private List<? extends Document> createTestListOfStationSnaps() {
@@ -106,17 +142,27 @@ public class BikedashServiceTest {
                 getDateTime(LocalDate.of(2015, 11, 3), LocalTime.of(0, 0), ZoneId.of(AMERICA_NEW_YORK))));
         snaps.add(createTestStationSnap(INDEGO,
                 getDateTime(LocalDate.of(2015, 11, 3), LocalTime.of(0, 1), ZoneId.of(AMERICA_NEW_YORK))));
-        System.out.println("Docs to store in fongo");
-        snaps.forEach(s -> System.out.println(s));
         return snaps;
-    }
-
-    private Date getDateTime(LocalDate localDate, LocalTime localTime, ZoneId zoneId) {
-        return Date.from((ZonedDateTime.of(localDate, localTime, zoneId)).toInstant());
     }
 
     private Document createTestStationSnap(String stationId, Date date) {
         return new Document("_id", new Document("systemId", stationId).append("ts", date));
+    }
+
+    private List<? extends Document> createTestListOfStations() {
+        List<Document> snaps = new ArrayList<>();
+        snaps.add(createTestStation(1, INDEGO, "2015-11-01"));
+        snaps.add(createTestStation(1, INDEGO, "2015-11-02"));
+        snaps.add(createTestStation(1, INDEGO, "2015-11-03"));
+        snaps.add(createTestStation(1, BABS, "2015-11-01"));
+        snaps.add(createTestStation(1, BABS, "2015-11-02"));
+        snaps.add(createTestStation(1, BABS, "2015-11-03"));
+        return snaps;
+    }
+
+    private Document createTestStation(int stationId, String systemId, String date) {
+        Document s = new Document("_id", new Document("stationId", stationId).append("systemId", systemId).append("date", date));
+        return s;
     }
 
     private List<? extends Document> createTestListOfBikeSystems() {
