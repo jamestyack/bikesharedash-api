@@ -15,6 +15,8 @@ import java.util.Date;
 import java.util.List;
 
 import static com.mongodb.client.model.Filters.*;
+import static com.mongodb.client.model.Sorts.ascending;
+import static com.mongodb.client.model.Sorts.descending;
 
 public class BikedashService {
 
@@ -32,12 +34,12 @@ public class BikedashService {
     }
 
     /**
-     * Get a list of all bike systems.
+     * Get a list of all bike systems sorted by location
      * @return List of BikeSystem
      */
     public List<BikeSystem> findAllBikeSystems() {
         MongoCollection<Document> collection = db.getCollection(BIKE_SYSTEMS_COLLECTION);
-        return collection.find().map(document -> new BikeSystem(document)).into(new ArrayList<>());
+        return collection.find().sort(ascending("Location")).map(document -> new BikeSystem(document)).into(new ArrayList<>());
     }
 
     /**
@@ -73,13 +75,30 @@ public class BikedashService {
     }
 
     /**
+     * Get all stations based on most recently recorded date
+     * @param systemId name of the bike system
+     * @return List of station documents
+     */
+    public List<Document> findStations(String systemId) {
+        // TODO create index on collection? (for systemid and date?) ... done... see bike_share_jobs
+        findBikeSystem(systemId);
+        MongoCollection<Document> collection = db.getCollection(STATIONS_COLLECTION);
+        // mongo query to get most recent date for stations
+        // db.stations.find({'_id.systemId': 'babs'},{'id.date':1}).sort({'_id.date':-1}).limit(1)
+        final Document first = collection.find(eq("_id.systemId", systemId)).sort(descending("_id.date")).first();
+        final String mostRecentDate = (String)((Document)first.get("_id")).get("date");
+        final FindIterable<Document> docs = collection.find(and(eq("_id.systemId", systemId),eq("_id.date", mostRecentDate)));
+        return docs.into(new ArrayList<>());
+    }
+
+    /**
      * Get all stations
      * @param systemId name of the bike system
      * @param date to query (stations move)
      * @return List of station documents
      */
     public List<Document> findStations(String systemId, String date) {
-        // TODO create index on collection?
+        // TODO create index on collection? (for systemid and date?) ... done... see bike_share_jobs
         findBikeSystem(systemId);
         MongoCollection<Document> collection = db.getCollection(STATIONS_COLLECTION);
         final FindIterable<Document> docs = collection.find(and(eq("_id.systemId", systemId),eq("_id.date", date)));
