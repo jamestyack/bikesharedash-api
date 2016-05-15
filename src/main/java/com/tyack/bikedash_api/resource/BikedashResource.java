@@ -1,6 +1,7 @@
 package com.tyack.bikedash_api.resource;
 
 import com.tyack.bikedash_api.exception.BikeSystemNotFoundException;
+import com.tyack.bikedash_api.exception.StationsNotFoundException;
 import com.tyack.bikedash_api.service.BikedashService;
 import com.tyack.bikedash_api.transformer.JsonTransformer;
 import org.slf4j.Logger;
@@ -97,6 +98,11 @@ public class BikedashResource extends CommonResource {
 	exception(BikeSystemNotFoundException.class, (e, request, response) -> {
 	    response.status(404);
 	    response.body(jsonError(e.getMessage()));
+	});
+
+	exception(StationsNotFoundException.class, (e, request, response) -> {
+		response.status(404);
+		response.body(jsonError(e.getMessage()));
 	});
 
 	exception(DateTimeParseException.class, (e, request, response) -> {
