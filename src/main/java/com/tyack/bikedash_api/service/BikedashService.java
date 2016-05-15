@@ -4,6 +4,7 @@ import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.tyack.bikedash_api.exception.BikeSystemNotFoundException;
+import com.tyack.bikedash_api.exception.StationsNotFoundException;
 import com.tyack.bikedash_api.model.BikeSystem;
 import org.bson.Document;
 import org.slf4j.Logger;
@@ -86,6 +87,9 @@ public class BikedashService {
         // mongo query to get most recent date for stations
         // db.stations.find({'_id.systemId': 'babs'},{'id.date':1}).sort({'_id.date':-1}).limit(1)
         final Document first = collection.find(eq("_id.systemId", systemId)).sort(descending("_id.date")).first();
+        if (first == null) {
+            throw new StationsNotFoundException(systemId);
+        }
         final String mostRecentDate = (String)((Document)first.get("_id")).get("date");
         final FindIterable<Document> docs = collection.find(and(eq("_id.systemId", systemId),eq("_id.date", mostRecentDate)));
         return docs.into(new ArrayList<>());
